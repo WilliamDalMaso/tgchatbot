@@ -1,0 +1,55 @@
+import os
+import telegram
+import spotipy
+from spotipy.oauth2 import SpotifyClientCredentials
+from telegram.ext import CommandHandler, Updater
+
+
+# Set up the Telegram bot
+bot = telegram.Bot(token=os.environ.get('6293648504:AAEpsyzh6sK-ds6OuYJ0MgttbgR2QDxx2sE'))
+
+# Set up the Spotify API client
+spotify_client_id = os.environ.get('cb91bf96d14a41f299121b0bb6891fa5')
+spotify_client_secret = os.environ.get('4a5a713b38174c518a6d0a7bd8d80a56')
+spotify_credentials = SpotifyClientCredentials(client_id=spotify_client_id, client_secret=spotify_client_secret)
+spotify = spotipy.Spotify(client_credentials_manager=spotify_credentials)
+
+
+def start(update, context):
+    """Start command handler"""
+    message = "Hi, I'm a Spotify song fetcher! Just send me a song name or artist and I'll try to find it for you."
+    context.bot.send_message(chat_id=update.effective_chat.id, text=message)
+
+
+def search_song(update, context):
+    """Search for a song on Spotify and return the first result"""
+    query = ' '.join(context.args)
+    result = spotify.search(q=query, type='track', limit=1)
+
+    if result['tracks']['total'] == 0:
+        message = f"Sorry, I couldn't find any songs matching {query}."
+    else:
+        track = result['tracks']['items'][0]
+        message = f"Here's what I found:\n\n{track['name']} by {track['artists'][0]['name']}\n\n{track['external_urls']['spotify']}"
+
+    context.bot.send_message(chat_id=update.effective_chat.id, text=message)
+
+
+def main():
+    """Set up the chatbot"""
+    updater = Updater(token=os.environ.get('6293648504:AAEpsyzh6sK-ds6OuYJ0MgttbgR2QDxx2sE'), use_context=True)
+    dispatcher = updater.dispatcher
+
+    # Set up command handlers
+    start_handler = CommandHandler('start', start)
+    search_song_handler = CommandHandler('song', search_song)
+
+    dispatcher.add_handler(start_handler)
+    dispatcher.add_handler(search_song_handler)
+
+    # Start the bot
+    updater.start_polling()
+
+
+if __name__ == '__main__':
+    main()
